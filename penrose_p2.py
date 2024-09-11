@@ -3,6 +3,7 @@ Generate a "P2" Penrose tiling - an aperiodic tiling composed
 of "kite" and "dart" shapes.
 """
 import math
+import argparse
 
 PHI = (1 + math.sqrt(5)) / 2
 
@@ -220,6 +221,13 @@ STAR = set([dart(Vec2.ZERO, h=72 * i, s=150) for i in range(5)])
 
 
 def inflate(tiles):
+    """
+    Perform the "inflate" operation on a set of tiles.
+    This operation replaces each tile with a set of smaller tiles.
+
+    (In the literature, this is followed by scaling the whole drawing
+    by PHI, but we ignore this since we're dealing with SVG).
+    """
     res = set()
     for tile in tiles:
         for child in tile.inflate():
@@ -249,13 +257,23 @@ def build_svg(tiles):
     return '\n'.join(buf)
 
 
-def main():
-    init = [t.translate(Vec2(800, 500)) for t in SUN]
-    tiles = iterate(init, 6)
+def main(seed, iters):
+    tiles = STAR if seed == "star" else SUN
+    tiles = [t.translate(Vec2(800, 500)) for t in tiles]
+    tiles = iterate(tiles, iters)
     svg = build_svg(tiles)
-    with open("tiling-sun-6.svg", "w") as out:
+    path = "tiling-%s-%d.svg" % (seed, iters)
+    with open(path,  "w") as out:
         out.write(svg)
+    print("wrote %s tiles to %s" % (len(tiles), path))
+
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--seed", default="sun", choices=["star", "sun"])
+    parser.add_argument("--iters", default=8, type=int)
+    return vars(parser.parse_args())
 
 
 if __name__ == "__main__":
-    main()
+    main(**parse_args())
