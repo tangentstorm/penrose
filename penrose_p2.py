@@ -200,11 +200,9 @@ class Tile:
         """
         p = ' '.join(str(p)[1:-1] for p in self.points())
         # c = 'kite' if self.shape == KITE else 'dart'
-        # s = 'fill:none;stroke:#0000ff;stroke-width:0.01;stroke-linecap:round;'
-        # !! you can probably get by without the next line...
-        # s += 'stroke-dasharray:none;stroke-opacity:1;-inkscape-stroke:hairline'
-        # return '<polygon class="%c" style="%s" points="%s"/>' % (c,s,p)
-        return '<polygon fill="none" stroke="#0000ff" stroke-width="0.01" stroke-linecap="round" points="%s"/>' % p
+        s = 'fill:none;stroke:#0000ff;stroke-width:0.01;stroke-linecap:round;'
+        s += 'stroke-dasharray:none;stroke-opacity:1;-inkscape-stroke:hairline'
+        return '<polygon style="%s" points="%s"/>' % (s, p)
 
 
 def dart(p, h, s):
@@ -271,7 +269,7 @@ def main(seed, iters):
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--seed", default="sun", choices=["star", "sun"])
-    parser.add_argument("--iters", default=8, type=int)
+    parser.add_argument("--iters", default=4, type=int)
     return vars(parser.parse_args())
 
 
