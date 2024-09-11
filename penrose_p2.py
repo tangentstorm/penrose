@@ -45,10 +45,12 @@ class Vec2:
             raise NotImplementedError()
 
     def __hash__(self):
-        return hash((self.x, self.y))
+        # convert to string so the hash isn't effected by small floating point errors
+        return hash(str(self))
 
     def __eq__(self, other):
-        return self.x == other.x and self.y == other.y
+        epsilon = 1e-6
+        return abs(self.x - other.x) < epsilon and abs(self.y - other.y) < epsilon
 
     def offset(self, angle, distance):
         """
