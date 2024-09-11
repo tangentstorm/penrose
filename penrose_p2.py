@@ -4,9 +4,9 @@ of "kite" and "dart" shapes.
 """
 import math
 
-PHI = (1 + math.sqrt(5))/2
+PHI = (1 + math.sqrt(5)) / 2
 
-# The kite and dart each have a "pointy end" with a 72 degree angle.
+# The kite and dart each have a "pointy end" with a 72-degree angle.
 # Imagine laying the tile on its side so that one side of this corner is
 # a horizontal line, and the corner is pointing to the left. The vertex
 # at this corner is our starting point. We now model the shape as a
@@ -17,6 +17,7 @@ DART = [(72, PHI), (36, 1), (216, 1), (36, PHI)]
 
 class Vec2:
     """A 2d vector, or point on a 2d plane"""
+
     def __init__(self, x=0.0, y=0.0):
         self.x = float(x)
         self.y = float(y)
@@ -45,6 +46,9 @@ class Vec2:
     def __hash__(self):
         return hash((self.x, self.y))
 
+    def __eq__(self, other):
+        return self.x == other.x and self.y == other.y
+
     def offset(self, angle, distance):
         """
         Calculate a new point given an angle and distance.
@@ -62,16 +66,19 @@ class Vec2:
 
     def dist(self, other):
         """returns a scalar representing the distance to the other point"""
-        return math.sqrt((other.x - self.x)**2 + (other.y - self.y)**2)
+        return math.sqrt((other.x - self.x) ** 2 + (other.y - self.y) ** 2)
 
     def length(self):
         """magnitude of the vector / the distance from the origin"""
-        return self.dist(Vec2(0,0))
+        return self.dist(Vec2.ZERO)
 
     def norm(self):
         """normalize this vector to length=1"""
         length = self.length()
-        return Vec2(self.x/length, self.y/length) if length > 0 else Vec2(0,0)
+        return Vec2(self.x / length, self.y / length) if length > 0 else Vec2.ZERO
+
+
+Vec2.ZERO = Vec2(0, 0)
 
 
 class Tile:
@@ -79,12 +86,13 @@ class Tile:
     Represents an arbitrary tile (polygon) anchored at a
     given location and "pointing" in a given direction.
     """
+
     def __init__(self, shape, location, heading, scale):
         """
         shape = a list of points that serve as a "template"
           (in this case, generally a reference to KITE or DART)
         location = a Vec2 locating an arbitrary point on the shape.
-          (for the penrose tiles, it's the the "pointy" end of the shape)
+          (for the penrose tiles, it's the "pointy" end of the shape)
         heading = angle we're facing (0=right, 90=up)
         scale = scaling factor (length of the "short" sides)
         """
@@ -96,6 +104,12 @@ class Tile:
     def __hash__(self):
         return hash((id(self.shape), self.location, self.heading, self.scale))
 
+    def __eq__(self, other):
+        for slot in ['shape', 'location', 'heading', 'scale']:
+            if getattr(self, slot) != getattr(other, slot):
+                return False
+        return True
+
     def translate(self, dxy):
         return Tile(self.shape, self.location + dxy, self.heading, self.scale)
 
@@ -105,7 +119,7 @@ class Tile:
         point = self.location
         yield point
         for (angle, distance) in self.shape:
-            heading = (heading + (180-angle)) % 360
+            heading = (heading + (180 - angle)) % 360
             other = point.offset(heading, distance * self.scale)
             point = other
             yield point
@@ -115,9 +129,9 @@ class Tile:
         points = self.points()
         point = start = next(points)
         for other in points:
-            yield (point.x, point.y, other.x, other.y)
+            yield point.x, point.y, other.x, other.y
             point = other
-        yield (point.x, point.y, start.x, start.y)
+        yield point.x, point.y, start.x, start.y
 
     def centroid(self):
         """
@@ -161,15 +175,20 @@ class Tile:
         p = list(self.points())
         h = self.heading
         s = self.scale / PHI
-        aa = lambda a0,a1: (a0+a1)%360 # add two angles
-        an = lambda n: (self.heading + sum([a for (a,_d) in self.shape[:n]])) % 360 # (angle of point n)
+
+        def aa(a0, a1):
+            return (a0 + a1) % 360  # add two angles
+
+        def an(n):
+            return (self.heading + sum([a for (a, _) in self.shape[:n]])) % 360  # (angle of point n)
+
         if self.shape == KITE:
-            res = [dart(p[0], aa(h,-36), s),
-                   dart(p[0], aa(h,+36), s),
-                   kite(p[1], aa(an(1),+36), s),
-                   kite(p[3], aa(an(3),-36), s)]
+            res = [dart(p[0], aa(h, -36), s),
+                   dart(p[0], aa(h, +36), s),
+                   kite(p[1], aa(an(1), +36), s),
+                   kite(p[3], aa(an(3), -36), s)]
         elif self.shape == DART:
-            res = [kite(p[0], h, s), dart(p[1], aa(an(1),72), s), dart(p[3], aa(an(3),-108), s)]
+            res = [kite(p[0], h, s), dart(p[1], aa(an(1), 72), s), dart(p[3], aa(an(3), -108), s)]
         else:
             raise NotImplementedError("Can only inflate kites and darts")
         return res
@@ -179,25 +198,25 @@ class Tile:
         Generate an SVG representation of the tile.
         """
         p = ' '.join(str(p)[1:-1] for p in self.points())
-        #c = 'kite' if self.shape == KITE else 'dart'
-        #s = 'fill:none;stroke:#0000ff;stroke-width:0.01;stroke-linecap:round;'
+        # c = 'kite' if self.shape == KITE else 'dart'
+        # s = 'fill:none;stroke:#0000ff;stroke-width:0.01;stroke-linecap:round;'
         # !! you can probably get by without the next line...
         # s += 'stroke-dasharray:none;stroke-opacity:1;-inkscape-stroke:hairline'
-        #return '<polygon class="%c" style="%s" points="%s"/>' % (c,s,p)
-        return '<polygon fill="none" stroke="#0000ff" stroke-width="0.01" stroke-linecap="round" points="%s"/>' % (p)
+        # return '<polygon class="%c" style="%s" points="%s"/>' % (c,s,p)
+        return '<polygon fill="none" stroke="#0000ff" stroke-width="0.01" stroke-linecap="round" points="%s"/>' % p
 
 
-def dart(p,h,s):
+def dart(p, h, s):
     return Tile(DART, p, heading=h, scale=s)
 
 
-def kite(p,h,s):
+def kite(p, h, s):
     return Tile(KITE, p, heading=h, scale=s)
 
 
 # five kites coming together at a point make a "sun", five kites a "star"
-SUN = set([kite(Vec2(0,0), h=72 * i, s=150) for i in range(5)])
-STAR = set([dart(Vec2(0,0), h=72 * i, s=150) for i in range(5)])
+SUN = set([kite(Vec2.ZERO, h=72 * i, s=150) for i in range(5)])
+STAR = set([dart(Vec2.ZERO, h=72 * i, s=150) for i in range(5)])
 
 
 def inflate(tiles):
@@ -230,9 +249,13 @@ def build_svg(tiles):
     return '\n'.join(buf)
 
 
-if __name__ == "__main__":
-    init = [t.translate(Vec2(800,500)) for t in SUN]
-    tiles = iterate(SUN, 6)
+def main():
+    init = [t.translate(Vec2(800, 500)) for t in SUN]
+    tiles = iterate(init, 6)
     svg = build_svg(tiles)
     with open("tiling-sun-6.svg", "w") as out:
         out.write(svg)
+
+
+if __name__ == "__main__":
+    main()
